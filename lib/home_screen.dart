@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Todo> todos = [];
   bool isLoading = false;
 
-  // --- FITUR BARU: TIMESTAMP CACHE ---
+  // --- FITUR TAMBAHAN: TIMESTAMP CACHE ---
   DateTime? _lastRefreshTime;
 
   String selectedFilter = 'Semua';
@@ -65,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // --- LOGIKA DATA ---
-
   Future<void> _initData() async {
     await _loadUsername();
     await _refreshTodos();
@@ -89,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- FITUR BARU: REFRESH DENGAN NOTIFIKASI & TIMESTAMP ---
+  // --- FITUR TAMBAHAN: REFRESH DENGAN NOTIFIKASI & TIMESTAMP ---
   Future<void> _refreshTodos() async {
     setState(() => isLoading = true);
 
@@ -100,12 +99,11 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         todos = data;
         isLoading = false;
-        // Update Timestamp Terakhir Refresh
-        _lastRefreshTime = DateTime.now();
+        _lastRefreshTime = DateTime.now(); // FITUR TAMBAHAN: Update Timestamp
       });
 
-      // Tampilkan Notifikasi "Data from Cache"
-      ScaffoldMessenger.of(context).clearSnackBars(); // Hapus snackbar lama
+      // FITUR TAMBAHAN: Notifikasi "Data from Cache"
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Data from Cache (Local DB)"),
@@ -117,10 +115,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- FITUR BARU: TOMBOL CLEAR CACHE  ---
+  // --- FITUR TAMBAHAN: TOMBOL CLEAR CACHE ---
   void _clearCache() {
     setState(() {
-      todos.clear(); // Kosongkan list di memori (tapi DB aman)
+      todos.clear(); // Kosongkan list di memori (DB aman)
       _lastRefreshTime = null; // Reset waktu
     });
 
@@ -186,8 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return 0;
       });
   }
-
-  // --- DIALOG TAMBAH/EDIT ---
 
   Future<void> _showAddEditDialog([Todo? todo]) async {
     final isEditing = todo != null;
@@ -330,8 +326,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
-  // --- WIDGETS UI ---
 
   Widget _buildCategoryChip(String category) {
     final isSelected = selectedFilter == category;
@@ -521,7 +515,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // --- MAIN UI BUILD ---
-
   @override
   Widget build(BuildContext context) {
     int totalTodos = todos.length;
@@ -539,7 +532,7 @@ class _HomeScreenState extends State<HomeScreen> {
               elevation: 0,
               pinned: true,
               actions: [
-                // --- FITUR BARU: TOMBOL CLEAR CACHE  ---
+                // --- FITUR TAMBAHAN: TOMBOL CLEAR CACHE  ---
                 Tooltip(
                   message: "Clear Cache",
                   child: IconButton(
@@ -613,7 +606,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                       const SizedBox(height: 5),
-                      // --- FITUR BARU: TAMPILAN TIMESTAMP  ---
+                      // --- FITUR TAMBAHAN: TAMPILAN TIMESTAMP  ---
                       Text(
                         _lastRefreshTime == null
                             ? 'Belum ada data'
@@ -630,92 +623,49 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryColor.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '$completedTodos/$totalTodos Tugas Selesai',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
                             LinearProgressIndicator(
                               value: progress,
-                              backgroundColor: Colors.grey.shade300,
+                              minHeight: 10,
+                              backgroundColor: Colors.grey[300],
                               color: primaryColor,
-                              minHeight: 8,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Tugas selesai: $completedTodos / $totalTodos',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 15),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: [
-                            _buildCategoryChip('Semua'),
-                            ...categories
-                                .map((cat) => _buildCategoryChip(cat))
-                                .toList(),
-                          ],
+                          children: ['Semua', ...categories]
+                              .map((c) => _buildCategoryChip(c))
+                              .toList(),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Daftar Tugas ($selectedFilter)',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                      const SizedBox(height: 15),
+                      if (isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (filteredTodos.isEmpty)
+                        const Center(child: Text('Belum ada tugas'))
+                      else
+                        Column(
+                          children: filteredTodos
+                              .map((t) => _buildTodoItem(t))
+                              .toList(),
                         ),
-                      ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 80),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : filteredTodos.isEmpty
-                          ? Center(
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 20),
-                                  const Icon(
-                                    Icons.folder_open,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                  Text(
-                                    _lastRefreshTime == null
-                                        ? "Cache Cleared"
-                                        : "Tidak ada tugas.",
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: filteredTodos.map((todo) {
-                                return _buildTodoItem(todo);
-                              }).toList(),
-                            ),
-                ),
-                const SizedBox(height: 80),
               ]),
             ),
           ],
@@ -724,7 +674,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
         backgroundColor: primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }
